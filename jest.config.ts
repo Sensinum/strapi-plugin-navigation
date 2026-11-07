@@ -20,7 +20,6 @@ const config: JestConfigWithTsJest = {
   globals: {
     'ts-jest': {
       tsconfig: './server/tsconfig.json',
-      isolatedModules: true,
       diagnostics: {
         warnOnly: true,
       },
