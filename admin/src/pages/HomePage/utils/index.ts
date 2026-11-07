@@ -3,6 +3,7 @@ import { UseQueryResult } from '@tanstack/react-query';
 import { NavigationItemSchema } from '../../../api/validators';
 
 export * from './parsers';
+export { isContentManagerType } from './isContentManagerType';
 
 export const getPendingAction = (actions: Array<Pick<UseQueryResult, 'isPending'>>) =>
   actions.find(({ isPending }) => isPending);
@@ -25,6 +26,3 @@ export const changeCollapseItemDeep = (
     items: item.items?.map((el) => changeCollapseItemDeep(el, isCollapsed)),
   };
 };
-
-export const isContentManagerType = (uid?: string) =>
-  Boolean(uid?.includes('api::') || uid?.includes('plugin::'));

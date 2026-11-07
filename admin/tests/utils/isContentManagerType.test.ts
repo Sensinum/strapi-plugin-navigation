@@ -1,4 +1,4 @@
-import { isContentManagerType } from '../../src/pages/HomePage/utils';
+import { isContentManagerType } from '../../src/pages/HomePage/utils/isContentManagerType';
 
 describe('isContentManagerType', () => {
   it('accepts api:: content types', () => {
