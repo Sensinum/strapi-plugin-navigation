@@ -3,6 +3,8 @@
   "include": ["./src", "./custom.d.ts", "../@types"],
   "compilerOptions": {
     "rootDir": "../",
-    "baseUrl": "."
+    "baseUrl": ".",
+    "outDir": "./dist",
+    "noEmit": false
   }
 }
