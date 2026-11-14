@@ -93,7 +93,6 @@ describe('Navigation', () => {
             post: jest.fn().mockRejectedValue(undefined),
           });
           const mockNavigation = getMockNavigation();
-          const body = omit(mockNavigation, ['id', 'name']);
           const documentId = faker.string.uuid();
           const internalServerErrorMock = jest.fn();
 
@@ -107,7 +106,7 @@ describe('Navigation', () => {
               auditLog: auditLogMock,
               params: { documentId },
               request: asProxy<KoaContextExtension['request']>({
-                body,
+                body: mockNavigation,
               }),
               internalServerError: internalServerErrorMock,
             })
@@ -190,14 +189,13 @@ describe('Navigation', () => {
           });
         });
 
-        it('should handle an empty error', () => {
+        it('should handle an empty error', async () => {
           // Given
           const auditLogMock = jest.fn();
           const mockAdminService = asProxy<AdminService>({
             put: jest.fn().mockRejectedValue(undefined),
           });
           const mockNavigation = getMockNavigation();
-          const body = omit(mockNavigation, ['id', 'name']);
           const documentId = faker.string.uuid();
           const internalServerErrorMock = jest.fn();
 
@@ -206,12 +204,12 @@ describe('Navigation', () => {
           const adminController = buildAdminController({ strapi });
 
           // When
-          adminController.put(
+          await adminController.put(
             asProxy<KoaContext & KoaContextExtension>({
               auditLog: auditLogMock,
               params: { documentId },
               request: asProxy<KoaContextExtension['request']>({
-                body,
+                body: mockNavigation,
               }),
               internalServerError: internalServerErrorMock,
             })
@@ -230,6 +228,7 @@ describe('Navigation', () => {
           const mockNavigation = getMockNavigation();
           const body = omit(mockNavigation, ['id', 'name']);
           const documentId = faker.string.uuid();
+          const badRequestMock = jest.fn();
           const internalServerErrorMock = jest.fn();
 
           (getPluginService as jest.Mock).mockReturnValue(mockAdminService);
@@ -244,12 +243,44 @@ describe('Navigation', () => {
               request: asProxy<KoaContextExtension['request']>({
                 body,
               }),
+              badRequest: badRequestMock,
               internalServerError: internalServerErrorMock,
             })
           );
 
           // Then
-          expect(internalServerErrorMock).toHaveBeenCalled();
+          expect(badRequestMock).toHaveBeenCalled();
+          expect(internalServerErrorMock).not.toHaveBeenCalled();
+          expect(mockAdminService.put).not.toHaveBeenCalled();
+        });
+
+        it('should reject a non-object body', async () => {
+          const auditLogMock = jest.fn();
+          const mockAdminService = asProxy<AdminService>({
+            put: jest.fn(),
+          });
+          const documentId = faker.string.uuid();
+          const badRequestMock = jest.fn();
+          const internalServerErrorMock = jest.fn();
+
+          (getPluginService as jest.Mock).mockReturnValue(mockAdminService);
+
+          const adminController = buildAdminController({ strapi });
+
+          await adminController.put(
+            asProxy<KoaContext & KoaContextExtension>({
+              auditLog: auditLogMock,
+              params: { documentId },
+              request: asProxy<KoaContextExtension['request']>({
+                body: null,
+              }),
+              badRequest: badRequestMock,
+              internalServerError: internalServerErrorMock,
+            })
+          );
+
+          expect(badRequestMock).toHaveBeenCalled();
+          expect(internalServerErrorMock).not.toHaveBeenCalled();
           expect(mockAdminService.put).not.toHaveBeenCalled();
         });
       });

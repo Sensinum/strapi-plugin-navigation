@@ -143,7 +143,17 @@ export const useFormValues = () => {
     });
 
   const renderError = (field: string, messageKey?: string): string | undefined => {
-    return get(formError, field) ? formatMessage(getTrad(messageKey ?? field)) : undefined;
+    const stored = get(formError, field);
+
+    if (!stored) {
+      return undefined;
+    }
+
+    if (typeof stored === 'string' && stored.startsWith('popup.')) {
+      return formatMessage(getTrad(stored));
+    }
+
+    return formatMessage(getTrad(messageKey ?? field));
   };
 
   return {

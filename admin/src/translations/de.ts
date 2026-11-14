@@ -128,6 +128,9 @@ const de = {
           label: 'URL',
           placeholder: 'Eindeutiger URL-Teil für diesen Eintrag',
           preview: 'Vorschau:',
+          validation: {
+            reserved: 'Der Wert "null" ist reserviert. Wählen Sie einen anderen Pfad.',
+          },
         },
         externalPath: {
           label: 'Externe URL',
@@ -212,6 +215,7 @@ const de = {
       update: {
         error: 'Navigation konnte nicht gespeichert werden. Prüfen Sie die Entwicklerwerkzeuge.',
       },
+      reservedPath: 'Der Pfad "null" ist reserviert. Ändern Sie ihn bei: {titles}.',
     },
     error: {
       common: 'Fehler beim Verarbeiten der Anfrage.',
