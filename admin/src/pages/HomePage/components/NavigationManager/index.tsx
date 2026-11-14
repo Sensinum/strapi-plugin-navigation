@@ -24,6 +24,7 @@ import { NewNavigation, NewNavigationFooter } from './NewNavigation';
 import { PurgeCacheConfirm, PurgeCacheConfirmFooter } from './PurgeCacheConfirm';
 import { SetState, State } from './types';
 import { Typography } from '@strapi/design-system';
+import { reservedPathTitles } from '../../utils/path';
 
 interface Props {
   initialState: State;
@@ -68,6 +69,20 @@ export const NavigationManager = ({ initialState, isOpened, onClose }: Props) =>
   const onReset = useCallback(() => setState({ view: 'INITIAL' }), [setState]);
 
   const onSubmit = useCallback(async () => {
+    if ((state.view === 'EDIT' || state.view === 'CREATE') && state.current) {
+      const reservedTitles = reservedPathTitles(state.current.items ?? []);
+
+      if (reservedTitles.length > 0) {
+        toggleNotification({
+          type: 'warning',
+          message: formatMessage(getTrad('notification.navigation.reservedPath'), {
+            titles: reservedTitles.join(', '),
+          }),
+        });
+        return;
+      }
+    }
+
     const performAction =
       state.view === 'DELETE'
         ? () => {

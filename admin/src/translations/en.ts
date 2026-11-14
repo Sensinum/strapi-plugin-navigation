@@ -127,6 +127,9 @@ const en = {
           label: 'URL',
           placeholder: 'Unique url part identifies this item',
           preview: 'Preview:',
+          validation: {
+            reserved: 'The value "null" is reserved. Choose another path.',
+          },
         },
         externalPath: {
           label: 'External URL',
@@ -210,6 +213,7 @@ const en = {
       update: {
         error: 'Unable to save a navigation. Check developer tools.',
       },
+      reservedPath: 'Path "null" is reserved. Change it on: {titles}.',
     },
     error: {
       common: 'Error while processing request.',

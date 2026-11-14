@@ -128,6 +128,9 @@ const en = {
           label: 'URL',
           placeholder: 'Parte única del URL que identifica este ítem',
           preview: 'Vista previa:',
+          validation: {
+            reserved: 'El valor "null" está reservado. Elige otra ruta.',
+          },
         },
         externalPath: {
           label: 'URL externa',
@@ -211,6 +214,7 @@ const en = {
       update: {
         error: 'No se ha podido guardar la navegación. Revisa las herramientas de desarrollador.',
       },
+      reservedPath: 'La ruta "null" está reservada. Cámbiala en: {titles}.',
     },
     error: {
       common: 'Error al procesar la solicitud.',

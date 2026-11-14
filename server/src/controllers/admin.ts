@@ -1,6 +1,7 @@
 import { Core } from '@strapi/strapi';
 import { Context as KoaContext } from 'koa';
 import * as z from 'zod';
+import { InvalidParamNavigationError } from '../app-errors';
 import { DynamicSchemas } from '../schemas';
 import { getPluginService } from '../utils';
 import { fillFromOtherLocaleParams, idSchema } from './validators';
@@ -51,9 +52,10 @@ export default function adminController(context: { strapi: Core.Strapi }) {
         params: { documentId },
         auditLog,
       } = ctx;
-      const body = z.record(z.string(), z.unknown()).parse(ctx.request.body);
 
       try {
+        const body = z.record(z.string(), z.unknown()).parse(ctx.request.body);
+
         return await this.getAdminService().put({
           auditLog,
           payload: DynamicSchemas.updateNavigationSchema.parse({
@@ -62,6 +64,10 @@ export default function adminController(context: { strapi: Core.Strapi }) {
           }),
         });
       } catch (error) {
+        if (error instanceof z.ZodError) {
+          return ctx.badRequest(error.message);
+        }
+
         const originalError =
           error instanceof Error
             ? {
@@ -140,12 +146,20 @@ export default function adminController(context: { strapi: Core.Strapi }) {
       const { params, auditLog } = ctx;
       const { source, target, documentId } = fillFromOtherLocaleParams.parse(params);
 
-      return await this.getAdminService().fillFromOtherLocale({
-        source,
-        target,
-        documentId,
-        auditLog,
-      });
+      try {
+        return await this.getAdminService().fillFromOtherLocale({
+          source,
+          target,
+          documentId,
+          auditLog,
+        });
+      } catch (error) {
+        if (error instanceof InvalidParamNavigationError) {
+          return ctx.badRequest(error.message);
+        }
+
+        throw error;
+      }
     },
 
     readNavigationItemFromLocale(ctx: KoaContext) {

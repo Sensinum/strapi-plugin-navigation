@@ -212,6 +212,52 @@ describe('CommonService', () => {
       );
     });
 
+    it('should reject a reserved path before saving', async () => {
+      const service = commonService({ strapi });
+      const masterEntity = getMasterEntity();
+      const item = getNewNavigationItem({ path: 'null', title: 'Missing' });
+
+      await expect(
+        service.createBranch({
+          action: {},
+          masterEntity,
+          navigationItems: [item],
+          parentItem: undefined,
+        })
+      ).rejects.toThrow('Path "null" is reserved for Missing');
+
+      expect(mockSave).not.toHaveBeenCalled();
+    });
+
+    it('should stop a cyclic branch at the depth cap', async () => {
+      const service = commonService({ strapi });
+      const masterEntity = getMasterEntity();
+      const item: CreateBranchNavigationItemDTO = {
+        title: 'Loop',
+        path: '/ok',
+        type: 'INTERNAL',
+        autoSync: false,
+        uiRouterKey: 'loop',
+        order: 1,
+        collapsed: false,
+        menuAttached: false,
+        additionalFields: {},
+        audience: [],
+        items: [],
+      };
+      item.items = [item];
+
+      await expect(
+        service.createBranch({
+          action: {},
+          masterEntity,
+          navigationItems: [item],
+          parentItem: undefined,
+          depthMax: 1,
+        })
+      ).rejects.toThrow('Navigation item walk exceeded 1 items');
+    });
+
     it('should preserve user-provided title and path when autoSync is true and values are provided', async () => {
       const mockFindById = jest.fn().mockResolvedValue({
         id: 1,
@@ -463,6 +509,23 @@ describe('CommonService', () => {
           item: expect.objectContaining({ documentId: item.documentId }),
         })
       );
+    });
+
+    it('should reject a reserved path before updating', async () => {
+      const service = commonService({ strapi });
+      const masterEntity = getMasterEntity();
+      const item = makeItem({ path: 'null', title: 'Missing' });
+
+      await expect(
+        service.updateBranch({
+          action: {},
+          masterEntity,
+          navigationItems: [{ ...item, updated: true }],
+          parentItem: undefined,
+        })
+      ).rejects.toThrow('Path "null" is reserved for Missing');
+
+      expect(mockSave).not.toHaveBeenCalled();
     });
 
     it('should skip save when updated is false', async () => {
