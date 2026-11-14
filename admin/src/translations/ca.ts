@@ -519,6 +519,16 @@ const ca = {
         header: 'Confirmation',
       },
     },
+    unsavedChanges: {
+      dialog: {
+        header: 'Confirmació',
+        message: "Segur que voleu sortir d'aquesta pàgina? Es perdran tots els canvis.",
+        button: {
+          cancel: 'Cancel·lar',
+          confirm: 'Confirmar',
+        },
+      },
+    },
     notAccessPage: {
       back: "Retour à la page d'accueil",
     },

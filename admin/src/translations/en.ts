@@ -437,7 +437,7 @@ const en = {
             confirm: 'I understand',
             description: {
               line1:
-                'You are disabling Internationalization for Navigation. Navigations for locales different than default are not available for viewing and modifications via this plugin.',
+                'You are disabling Internationalization for Navigation. Navigations for locales different than default are not available for viewing and changes via this plugin.',
               line2: 'You can choose to remove navigations for other locales.',
               line3: 'Remember! Removal is irreversible',
             },
@@ -516,6 +516,16 @@ const en = {
         },
         description: 'Do you want to continue?',
         header: 'Confirmation',
+      },
+    },
+    unsavedChanges: {
+      dialog: {
+        header: 'Confirmation',
+        message: 'Are you sure you want to leave this page? All your changes will be lost.',
+        button: {
+          cancel: 'Cancel',
+          confirm: 'Confirm',
+        },
       },
     },
     notAccessPage: {
