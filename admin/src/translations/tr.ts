@@ -127,6 +127,9 @@ const tr = {
           label: 'URL',
           placeholder: 'Bu öğeyi tanımlayan benzersiz URL bölümü',
           preview: 'Önizleme:',
+          validation: {
+            reserved: '"null" değeri ayrılmıştır. Başka bir yol seçin.',
+          },
         },
         externalPath: {
           label: 'Harici URL',
@@ -210,6 +213,7 @@ const tr = {
       update: {
         error: 'Navigasyon kaydedilemedi. Geliştirici araçlarını kontrol edin.',
       },
+      reservedPath: '"null" yolu ayrılmıştır. Şunlarda değiştirin: {titles}.',
     },
     error: {
       common: 'İstek işlenirken hata oluştu.',

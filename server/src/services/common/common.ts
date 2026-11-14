@@ -27,7 +27,9 @@ import {
   NavigationActionsCategories,
   NavigationActionsPerItem,
 } from '../../types';
+import { InvalidParamNavigationError } from '../../app-errors';
 import { getPluginService } from '../../utils';
+import { navigationItemCountMax, pathReserved } from '../../utils/path';
 import {
   AnalyzeBranchInput,
   BuildNestedStructureInput,
@@ -149,6 +151,8 @@ const commonService = (context: { strapi: Core.Strapi }) => ({
     navigationItems = [],
     parentItem,
     prevAction = {},
+    depth = 0,
+    depthMax = navigationItemCountMax,
   }: AnalyzeBranchInput): Promise<NavigationAction[]> {
     const { toCreate, toRemove, toUpdate } = navigationItems.reduce(
       (acc, navigationItem) => {
@@ -184,6 +188,8 @@ const commonService = (context: { strapi: Core.Strapi }) => ({
         masterEntity,
         navigationItems: toCreate,
         parentItem,
+        depth,
+        depthMax,
       }),
       this.removeBranch({
         navigationItems: toRemove,
@@ -194,6 +200,8 @@ const commonService = (context: { strapi: Core.Strapi }) => ({
         masterEntity,
         navigationItems: toUpdate,
         parentItem,
+        depth,
+        depthMax,
       }),
     ]).then(([a, b, c]) => [...a, ...b, ...c]);
   },
@@ -233,7 +241,13 @@ const commonService = (context: { strapi: Core.Strapi }) => ({
     masterEntity,
     navigationItems,
     parentItem,
+    depth = 0,
+    depthMax = navigationItemCountMax,
   }: CreateBranchInput): Promise<NavigationAction[]> {
+    if (depth >= depthMax) {
+      throw new Error(`Navigation item walk exceeded ${depthMax} items`);
+    }
+
     let navigationActions: NavigationAction[] = [];
 
     const adminService = getPluginService(context, 'admin');
@@ -259,6 +273,10 @@ const commonService = (context: { strapi: Core.Strapi }) => ({
 
       const title = params.title || generatedFields?.title;
       const path = params.path || generatedFields?.path;
+
+      if (pathReserved(path)) {
+        throw new InvalidParamNavigationError(`Path "null" is reserved for ${title || 'Untitled'}`);
+      }
 
       const insertDetails =
         documentId && id
@@ -296,6 +314,8 @@ const commonService = (context: { strapi: Core.Strapi }) => ({
           masterEntity,
           navigationItems: navigationItem.items,
           parentItem: nextParentItem as NavigationItemDBSchema,
+          depth: depth + 1,
+          depthMax,
         });
 
         navigationActions = navigationActions.concat(innerActions).concat([action]);
@@ -312,7 +332,13 @@ const commonService = (context: { strapi: Core.Strapi }) => ({
     navigationItems,
     action,
     parentItem,
+    depth = 0,
+    depthMax = navigationItemCountMax,
   }: UpdateBranchInput): Promise<NavigationAction[]> {
+    if (depth >= depthMax) {
+      throw new Error(`Navigation item walk exceeded ${depthMax} items`);
+    }
+
     const result: NavigationAction[] = [];
 
     for (const updateDetails of navigationItems) {
@@ -323,6 +349,12 @@ const commonService = (context: { strapi: Core.Strapi }) => ({
       let currentItem;
 
       if (updated) {
+        if (pathReserved(params.path)) {
+          throw new InvalidParamNavigationError(
+            `Path "null" is reserved for ${params.title || 'Untitled'}`
+          );
+        }
+
         currentItem = await getNavigationItemRepository(context).save({
           item: {
             documentId,
@@ -340,6 +372,8 @@ const commonService = (context: { strapi: Core.Strapi }) => ({
           prevAction: {},
           masterEntity,
           parentItem: currentItem as NavigationItemDBSchema,
+          depth: depth + 1,
+          depthMax,
         });
 
         innerResult.forEach((_) => {

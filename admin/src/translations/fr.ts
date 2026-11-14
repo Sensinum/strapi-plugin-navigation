@@ -127,6 +127,9 @@ const fr = {
           label: 'URL',
           placeholder: "Partie unique de l'URL pour cet élément",
           preview: 'Aperçu :',
+          validation: {
+            reserved: 'La valeur « null » est réservée. Choisissez un autre chemin.',
+          },
         },
         externalPath: {
           label: 'URL externe',
@@ -211,6 +214,7 @@ const fr = {
       update: {
         error: "Impossible d'enregistrer la navigation. Vérifiez les outils de développement.",
       },
+      reservedPath: 'Le chemin « null » est réservé. Modifiez-le pour : {titles}.',
     },
     error: {
       common: 'Erreur lors du traitement de la demande.',

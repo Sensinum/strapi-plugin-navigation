@@ -123,6 +123,9 @@ const ca = {
           label: 'URL',
           placeholder: "Partie unique de l'URL identifiant cet élément",
           preview: 'Aperçu :',
+          validation: {
+            reserved: 'El valor "null" està reservat. Trieu un altre camí.',
+          },
         },
         externalPath: {
           label: 'URL externe',
@@ -207,6 +210,7 @@ const ca = {
       update: {
         error: "No s'ha pogut desar la navegació. Comproveu les eines de desenvolupador.",
       },
+      reservedPath: 'El camí "null" està reservat. Canvieu-lo a: {titles}.',
     },
     error: {
       common: 'Erreur lors du traitement de la demande.',

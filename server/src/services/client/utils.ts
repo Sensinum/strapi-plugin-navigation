@@ -1,6 +1,7 @@
 import { find, get, isArray, isEmpty, isNil, isString, last, zipWith } from 'lodash';
 import { NavigationItemDTO } from '../../dtos';
 import { StrapiContentTypeFullSchema } from '../../types';
+import { pathSegmentAbsent } from '../../utils/path';
 import { NestedPath } from './types';
 
 export const composeItemTitle = (
@@ -59,20 +60,22 @@ export const buildNestedPaths = <
 >(
   items: T[],
   documentId?: string,
-  parentPath: string | null = null
+  parentPath: string | null = null,
+  depth = 0
 ): NestedPath[] => {
+  if (depth > items.length) {
+    throw new Error(`Navigation path walk exceeded ${items.length} items`);
+  }
+
   return items
     .filter((entity) => {
-      let data: NavigationItemDTO | undefined | null = entity.parent;
-
-      if (!data == null && !documentId) {
-        return true;
-      }
-
+      // Root items have no parent. The root call passes no documentId, so both sides are undefined.
       return entity.parent?.documentId === documentId;
     })
     .reduce<NestedPath[]>((acc, entity): NestedPath[] => {
-      const path = `${parentPath || ''}/${entity.path}`.replace('//', '/');
+      const path = pathSegmentAbsent(entity.path)
+        ? (parentPath ?? '')
+        : `${parentPath || ''}/${entity.path}`.replace('//', '/');
 
       return [
         {
@@ -87,7 +90,7 @@ export const buildNestedPaths = <
               : undefined,
           path,
         },
-        ...buildNestedPaths(items, entity.documentId, path),
+        ...buildNestedPaths(items, entity.documentId, path, depth + 1),
         ...acc,
       ];
     }, []);

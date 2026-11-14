@@ -25,6 +25,7 @@ import {
   useUpdateNavigation,
 } from './hooks';
 import { getPendingAction, transformItemToViewPayload } from './utils';
+import { reservedPathTitles } from './utils/path';
 import { ManageNavigationItems } from './components/NavigationContentHeader/ManageNavigationItems';
 import { NavigationEmptyState } from './components/NavigationEmptyState';
 import { appendViewId } from './utils/appendViewId';
@@ -95,9 +96,23 @@ const Inner = () => {
   });
 
   const submit = () => {
-    if (currentNavigation) {
-      updateNavigationMutation.mutate(currentNavigation);
+    if (!currentNavigation) {
+      return;
     }
+
+    const reservedTitles = reservedPathTitles(currentNavigation.items ?? []);
+
+    if (reservedTitles.length > 0) {
+      toggleNotification({
+        type: 'warning',
+        message: formatMessage(getTrad('notification.navigation.reservedPath'), {
+          titles: reservedTitles.join(', '),
+        }),
+      });
+      return;
+    }
+
+    updateNavigationMutation.mutate(currentNavigation);
   };
 
   const onPopUpClose = (e: SyntheticEvent) => {
