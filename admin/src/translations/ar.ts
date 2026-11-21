@@ -515,6 +515,16 @@ const ar = {
         header: 'تأكيد',
       },
     },
+    unsavedChanges: {
+      dialog: {
+        header: 'تأكيد',
+        message: 'هل أنت متأكد أنك تريد مغادرة هذه الصفحة؟ ستفقد جميع التغييرات.',
+        button: {
+          cancel: 'إلغاء',
+          confirm: 'تأكيد',
+        },
+      },
+    },
     notAccessPage: {
       back: 'العودة إلى الصفحة الرئيسية',
     },

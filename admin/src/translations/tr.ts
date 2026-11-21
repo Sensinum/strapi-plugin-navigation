@@ -517,6 +517,16 @@ const tr = {
         header: 'Onay',
       },
     },
+    unsavedChanges: {
+      dialog: {
+        header: 'Onay',
+        message: 'Bu sayfadan çıkmak istediğinize emin misiniz? Tüm değişiklikleriniz kaybolacak.',
+        button: {
+          cancel: 'İptal',
+          confirm: 'Onayla',
+        },
+      },
+    },
     notAccessPage: {
       back: 'Ana sayfaya dön',
     },

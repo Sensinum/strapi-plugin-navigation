@@ -9,6 +9,7 @@ import { NavigationSchema } from '../../api/validators';
 import { getTrad } from '../../translations';
 import { NavigationHeader } from './components';
 import { ChangeLanguageDialog } from './components/ChangeLanguageDialog';
+import { UnsavedChangesBlocker } from './components/UnsavedChangesBlocker';
 import { NavigationContentHeader } from './components/NavigationContentHeader';
 import { List } from './components/NavigationItemList';
 import NavigationItemPopUp from './components/NavigationItemPopup';
@@ -134,6 +135,7 @@ const Inner = () => {
   };
 
   const listItems = isSearchEmpty ? (currentNavigation?.items ?? []) : filteredList;
+  const hasUnsavedChanges = structureChanged && !updateNavigationMutation.isPending;
 
   useEffect(() => {
     if (!currentNavigation && navigationsQuery.data?.[0]) {
@@ -172,7 +174,12 @@ const Inner = () => {
   useInvalidateQueries();
 
   if (!navigationsQuery.data || !localeData || !!pending) {
-    return <Page.Loading />;
+    return (
+      <>
+        <Page.Loading />
+        <UnsavedChangesBlocker when={hasUnsavedChanges} />
+      </>
+    );
   }
 
   return (
@@ -250,6 +257,7 @@ const Inner = () => {
               onConfirm={() => changeCurrentLocaleAction.perform()}
             />
           )}
+          <UnsavedChangesBlocker when={hasUnsavedChanges} />
         </Layouts.Content>
       </Page.Main>
     </Layouts.Root>

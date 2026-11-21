@@ -521,6 +521,16 @@ const en = {
         header: 'Confirmación',
       },
     },
+    unsavedChanges: {
+      dialog: {
+        header: 'Confirmación',
+        message: '¿Seguro que quieres salir de esta página? Se perderán todos los cambios.',
+        button: {
+          cancel: 'Cancelar',
+          confirm: 'Confirmar',
+        },
+      },
+    },
     notAccessPage: {
       back: 'Volver a la página de inicio',
     },

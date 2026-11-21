@@ -523,6 +523,16 @@ const de = {
         header: 'Bestätigung',
       },
     },
+    unsavedChanges: {
+      dialog: {
+        header: 'Bestätigung',
+        message: 'Möchten Sie diese Seite wirklich verlassen? Alle Änderungen gehen verloren.',
+        button: {
+          cancel: 'Abbrechen',
+          confirm: 'Bestätigen',
+        },
+      },
+    },
     notAccessPage: {
       back: 'Zurück zur Startseite',
     },
