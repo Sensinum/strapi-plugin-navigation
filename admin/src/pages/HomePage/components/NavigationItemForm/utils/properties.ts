@@ -6,6 +6,7 @@ import {
   StrapiContentTypeItemSchema,
 } from '../../../../../api/validators';
 import { extractRelatedItemLabel } from '../../../../HomePage/utils';
+import { composeNavigationPath, inheritedNavigationPath } from '../../../utils/path';
 import { type NavigationItemFormSchema } from './form';
 
 interface GenerateUiRouterKeyInput {
@@ -121,9 +122,10 @@ export const generatePreviewPath = ({
           })
         : currentPath || '';
 
-    const result = `${current.levelPath !== '/' ? `${current.levelPath}` : ''}/${itemPath}`;
-
-    return result.replace('//', '/');
+    return (
+      composeNavigationPath(current.levelPath, itemPath, false) ??
+      inheritedNavigationPath(current.levelPath)
+    );
   }
 
   return undefined;

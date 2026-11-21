@@ -24,4 +24,10 @@ More about applying database migrations you can find in [**Strapi 5 Documentatio
 
 Copy `migrations/strapi-plugin-navigation-3.4.3-no-1-null-path.js` into the project `database/migrations` directory.
 
-The file rewrites rows whose `path` is the exact string `null` to SQL `NULL`. `"null"` is the legacy spelling of a missing segment, and new writes of that string are rejected. A blank path stays an empty string.
+The file rewrites rows whose `path` is the exact string `null` to SQL `NULL`. `"null"` is the legacy spelling of a missing segment, and new writes of that string are rejected. A blank path (`""`) is treated the same as a missing segment.
+
+## Path matching and `absolutePath`
+
+- `GET /api/navigation/render/<id>?path=...` matches an item by its full path, so `/null/test` no longer matches an item under a parent without a path. Previously it could match by substring, which also returned siblings such as `/testing` for `/test`. Now the matched item and its children are returned. An item without a path of its own is not matched by its parent's path, but its children are still reachable.
+- FLAT responses include a new `absolutePath` field (also in GraphQL) with the item's full path, or `null` if the item has no path of its own. `path` keeps the item's own segment; a blank `path` is now returned as `null`.
+- TREE and RFR responses are unchanged, apart from the matching rules above.

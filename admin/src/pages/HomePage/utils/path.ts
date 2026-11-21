@@ -1,10 +1,18 @@
 import {
+  composeNavigationPath,
+  inheritedNavigationPath,
   navigationItemCountMax,
   pathReserved,
   pathSegmentAbsent,
 } from '../../../../../shared/path';
 
-export { navigationItemCountMax, pathReserved, pathSegmentAbsent };
+export {
+  composeNavigationPath,
+  inheritedNavigationPath,
+  navigationItemCountMax,
+  pathReserved,
+  pathSegmentAbsent,
+};
 
 export interface ReservedPathItem {
   type?: string | null;
@@ -52,23 +60,12 @@ export const reservedPathTitles = (items: ReservedPathItem[]): string[] => {
   return titles;
 };
 
+/**
+ * The path that this item's children build on. Uses the same rules as the server render API.
+ */
 export const navigationAbsolutePath = (
   levelPath: string,
   itemPath: string | null | undefined,
   isManualPath: boolean
-): string => {
-  if (pathSegmentAbsent(itemPath)) {
-    return levelPath === '/' ? '' : levelPath;
-  }
-
-  const presentPath = itemPath ?? '';
-
-  if (isManualPath) {
-    return presentPath;
-  }
-
-  const prefix = levelPath === '/' ? '' : levelPath;
-  const segment = presentPath === '/' ? '' : presentPath;
-
-  return `${prefix}/${segment}`.replace('//', '/');
-};
+): string =>
+  composeNavigationPath(levelPath, itemPath, isManualPath) ?? inheritedNavigationPath(levelPath);
