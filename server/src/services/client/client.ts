@@ -17,7 +17,13 @@ import {
   RenderTypeInput,
 } from './types';
 import { composeNavigationPath, pathSegmentAbsent, renderedItemPath } from '../../utils/path';
-import { compareArraysOfNumbers, composeItemTitle, filterByPath } from './utils';
+import {
+  buildNestedPaths,
+  compareArraysOfNumbers,
+  composeItemTitle,
+  createNestedOrdersResolver,
+  filterByPath,
+} from './utils';
 
 export type ClientService = ReturnType<typeof clientService>;
 
@@ -424,28 +430,14 @@ const clientService = (context: { strapi: Core.Strapi }) => ({
         default:
           const result = isNil(rootPath) ? mappedItems : filterByPath(mappedItems, rootPath).items;
 
-          const defaultCache = new Map<string, Array<number>>();
-          const getNestedOrders = (
-            documentId: string,
-            cache: Map<string, Array<number>> = defaultCache
-          ): Array<number> => {
-            const cached = cache.get(documentId);
-            if (!isNil(cached)) return cached;
-
-            const item = result.find((item) => item.documentId === documentId);
-
-            if (isNil(item)) return [];
-
-            const { order, parent } = item;
-
-            const nestedOrders = parent
-              ? getNestedOrders(parent.documentId, cache).concat(order)
-              : [order];
-
-            cache.set(documentId, nestedOrders);
-
-            return nestedOrders;
-          };
+          // Full paths are resolved against every item, so a filtered result keeps the same absolutePath.
+          const absolutePathById = new Map<string | undefined, string | null>(
+            buildNestedPaths(mappedItems).map(({ documentId, absolutePath }) => [
+              documentId,
+              absolutePath,
+            ])
+          );
+          const getNestedOrders = createNestedOrdersResolver(result);
 
           return result
             .map((item: NavigationItemDTO) => {
@@ -457,6 +449,7 @@ const clientService = (context: { strapi: Core.Strapi }) => ({
               return {
                 ...item,
                 path: renderedItemPath(item.path),
+                absolutePath: absolutePathById.get(item.documentId) ?? null,
                 audience: item.audience?.map((_) => _.key),
                 title: composeItemTitle(item, contentTypesNameFields, contentTypes) || '',
                 related: wrapContentType(item.related),

@@ -1,7 +1,7 @@
 import { find, get, isArray, isEmpty, isNil, isString, last, zipWith } from 'lodash';
 import { NavigationItemDTO } from '../../dtos';
 import { StrapiContentTypeFullSchema } from '../../types';
-import { pathSegmentAbsent } from '../../utils/path';
+import { composeNavigationPath, inheritedNavigationPath } from '../../utils/path';
 import { NestedPath } from './types';
 
 export const composeItemTitle = (
@@ -37,63 +37,158 @@ export const extractItemRelationTitle = (
   );
 };
 
-export const filterByPath = <T extends Pick<NavigationItemDTO, 'parent' | 'documentId' | 'path'>>(
+/**
+ * Returns a resolver that gives the render-order key (the chain of `order` values from the root
+ * down to the item) for an item. Both FLAT sorting and `?path=` tie-breaking use it.
+ */
+export const createNestedOrdersResolver = <
+  T extends Pick<NavigationItemDTO, 'parent' | 'documentId' | 'order'>,
+>(
+  items: T[]
+) => {
+  const itemsById = new Map<string, T>(items.map((item) => [item.documentId, item]));
+  const cache = new Map<string, number[]>();
+
+  const resolve = (documentId: string): number[] => {
+    const cached = cache.get(documentId);
+    if (!isNil(cached)) return cached;
+
+    const item = itemsById.get(documentId);
+
+    if (isNil(item)) return [];
+
+    const { order, parent } = item;
+    const nestedOrders = parent ? resolve(parent.documentId).concat(order) : [order];
+
+    cache.set(documentId, nestedOrders);
+
+    return nestedOrders;
+  };
+
+  return resolve;
+};
+
+/**
+ * Finds the item whose own full path equals `path` and returns it together with its descendants.
+ * Descendants are collected through the parent chain, not by comparing path strings.
+ * If several items share the same full path, the first one in render order wins.
+ */
+export const filterByPath = <
+  T extends Pick<NavigationItemDTO, 'parent' | 'documentId' | 'path' | 'isManualPath' | 'order'>,
+>(
   items: T[],
-  path?: string
+  path?: string | null
 ): { root?: NestedPath; items: T[] } => {
-  const parsedItems = buildNestedPaths(items);
-  const itemsWithPaths = path
-    ? parsedItems.filter(({ path: itemPath }) => itemPath.includes(path))
-    : parsedItems;
-  const root = itemsWithPaths.find(({ path: itemPath }) => itemPath === path);
+  if (isNil(path)) {
+    return { root: undefined, items };
+  }
+
+  const resolveOrders = createNestedOrdersResolver(items);
+  const [root] = buildNestedPaths(items)
+    .filter((nested) => nested.absolutePath === path)
+    .sort((a, b) =>
+      compareArraysOfNumbers(resolveOrders(a.documentId ?? ''), resolveOrders(b.documentId ?? ''))
+    );
+
+  if (isNil(root)) {
+    return { root: undefined, items: [] };
+  }
+
+  const childrenByParent = new Map<string, string[]>();
+
+  items.forEach(({ documentId, parent }) => {
+    const parentId = parent?.documentId;
+
+    if (!parentId) return;
+
+    const siblings = childrenByParent.get(parentId);
+
+    if (siblings) {
+      siblings.push(documentId);
+    } else {
+      childrenByParent.set(parentId, [documentId]);
+    }
+  });
+
+  const included = new Set<string>();
+  const queue = [root.documentId ?? ''];
+
+  for (let index = 0; index < queue.length; index += 1) {
+    const current = queue[index];
+
+    if (included.has(current)) continue;
+
+    included.add(current);
+    queue.push(...(childrenByParent.get(current) ?? []));
+  }
 
   return {
     root,
-    items: isNil(root)
-      ? []
-      : items.filter(({ documentId }) => itemsWithPaths.find((v) => v.documentId === documentId)),
+    items: items.filter(({ documentId }) => included.has(documentId)),
   };
 };
 
 export const buildNestedPaths = <
-  T extends Pick<NavigationItemDTO, 'parent' | 'documentId' | 'path'>,
+  T extends Pick<NavigationItemDTO, 'parent' | 'documentId' | 'path' | 'isManualPath'>,
 >(
   items: T[],
   documentId?: string,
   parentPath: string | null = null,
   depth = 0
 ): NestedPath[] => {
-  if (depth > items.length) {
-    throw new Error(`Navigation path walk exceeded ${items.length} items`);
-  }
+  const childrenByParent = new Map<string | undefined, T[]>();
 
-  return items
-    .filter((entity) => {
-      // Root items have no parent. The root call passes no documentId, so both sides are undefined.
-      return entity.parent?.documentId === documentId;
-    })
-    .reduce<NestedPath[]>((acc, entity): NestedPath[] => {
-      const path = pathSegmentAbsent(entity.path)
-        ? (parentPath ?? '')
-        : `${parentPath || ''}/${entity.path}`.replace('//', '/');
+  items.forEach((item) => {
+    const parentId = item.parent?.documentId;
+    const siblings = childrenByParent.get(parentId);
 
-      return [
-        {
-          documentId: entity.documentId,
-          parent:
-            parentPath && entity.parent?.documentId
+    if (siblings) {
+      siblings.push(item);
+    } else {
+      childrenByParent.set(parentId, [item]);
+    }
+  });
+
+  const walk = (
+    parentDocumentId: string | undefined,
+    ancestorPath: string | null,
+    walkDepth: number
+  ): NestedPath[] => {
+    if (walkDepth > items.length) {
+      throw new Error(`Navigation path walk exceeded ${items.length} items`);
+    }
+
+    return (childrenByParent.get(parentDocumentId) ?? []).reduce<NestedPath[]>(
+      (acc, entity): NestedPath[] => {
+        const absolutePath = composeNavigationPath(
+          ancestorPath,
+          entity.path,
+          !!entity.isManualPath
+        );
+        const path = absolutePath ?? inheritedNavigationPath(ancestorPath);
+
+        return [
+          {
+            documentId: entity.documentId,
+            absolutePath,
+            parent: entity.parent?.documentId
               ? {
-                  id: entity.parent?.id,
-                  documentId: entity.parent?.documentId,
-                  path: parentPath,
+                  id: entity.parent.id,
+                  documentId: entity.parent.documentId,
+                  path: inheritedNavigationPath(ancestorPath),
                 }
               : undefined,
-          path,
-        },
-        ...buildNestedPaths(items, entity.documentId, path, depth + 1),
-        ...acc,
-      ];
-    }, []);
+            path,
+          },
+          ...walk(entity.documentId, path, walkDepth + 1),
+          ...acc,
+        ];
+      },
+      []
+    );
+  };
+
+  return walk(documentId, parentPath, depth);
 };
 
 export const compareArraysOfNumbers = (arrA: number[], arrB: number[]) => {

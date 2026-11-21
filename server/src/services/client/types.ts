@@ -11,7 +11,10 @@ export type NestedPath = {
     documentId: string;
     path: string;
   };
+  /** Effective path used for children; inherited from the parent when the item has no segment. */
   path: string;
+  /** Own full path, or null when the item has no segment of its own. Used for `?path=` matching. */
+  absolutePath: string | null;
 };
 
 export interface ReadAllInput {

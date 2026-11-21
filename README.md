@@ -362,7 +362,7 @@ Plugin supports both **REST API** and **GraphQL API** exposed by Strapi.
 
   > `https://localhost:1337/api/navigation/render/njx99iv4p4txuqp307ye8625?menu=true`
 
-- `path` - String value for querying navigation items by its path:
+- `path` - String value for querying navigation items by its full path. The item whose full path (`absolutePath` in FLAT) is exactly this value is returned together with its children. An item with no path of its own (`null` or empty) doesn't match its parent's path, but its children are still reachable through it. If several items share the same full path, the first one in render order is used:
 
   > `https://localhost:1337/api/navigation/render/njx99iv4p4txuqp307ye8625?path=/home/about-us`
 
@@ -461,6 +461,7 @@ Return a rendered navigation structure depends on passed type (`TREE`, `RFR` or 
     "title": "News",
     "type": "INTERNAL",
     "path": "news",
+    "absolutePath": "/news",
     "externalPath": null,
     "uiRouterKey": "News",
     "menuAttached": false,
