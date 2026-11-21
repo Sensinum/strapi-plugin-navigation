@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { NavigationItemAdditionalField } from '../../../../../schemas';
+import { pathReserved } from '../../../utils/path';
 
 const externalPathRegexps = [
   /^mailto:[\w-\.]+@([\w-]+\.)+[\w-]{2,}$/,
@@ -8,6 +9,14 @@ const externalPathRegexps = [
   /(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})/,
   /(\/[a-z0-9\-._~%!$&'()*+,;=:@]+)+\/?/,
 ];
+
+const navigationItemPathSchema = z
+  .string()
+  .or(z.null())
+  .optional()
+  .refine((value) => !pathReserved(value), {
+    message: 'popup.item.form.path.validation.reserved',
+  });
 
 interface FormSchemaBuilderInput {
   isSingleSelected?: boolean;
@@ -92,7 +101,7 @@ const navigationInternalItemFormSchema = ({
     isSingleSelected,
   }).extend({
     type: z.literal('INTERNAL'),
-    path: z.string().or(z.null()).optional(),
+    path: navigationItemPathSchema,
     externalPath: z.string().nullish(),
     relatedType: z.string(),
     related: isSingleSelected ? z.string().optional() : z.string(),
@@ -125,7 +134,7 @@ const navigationWrapperItemFormSchema = ({
     isSingleSelected,
   }).extend({
     type: z.literal('WRAPPER'),
-    path: z.string().or(z.null()).optional(),
+    path: navigationItemPathSchema,
   });
 
 export type NavigationItemFormSchema = z.infer<ReturnType<typeof navigationItemFormSchema>>;

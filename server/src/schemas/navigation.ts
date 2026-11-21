@@ -1,5 +1,7 @@
 import * as z from 'zod';
 
+import { pathReserved } from '../utils/path';
+
 export type AudienceDBSchema = z.infer<typeof audienceDBSchema>;
 export const audienceDBSchema = z.object({
   id: z.number(),
@@ -104,6 +106,13 @@ export const updateNavigationItemSchema: UpdateNavigationItemSchema = navigation
   .extend({
     id: z.number().optional(),
     documentId: z.string().optional(),
+    path: z
+      .string()
+      .or(z.null())
+      .optional()
+      .refine((value) => !pathReserved(value), {
+        message: 'path "null" is reserved',
+      }),
     items: z
       .lazy(() => updateNavigationItemsSchema)
       .or(z.null())

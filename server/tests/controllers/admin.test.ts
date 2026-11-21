@@ -4,6 +4,7 @@ import { Context as KoaContext } from 'koa';
 import { omit } from 'lodash';
 
 import buildAdminController, { KoaContextExtension } from '../../src/controllers/admin';
+import { InvalidParamNavigationError } from '../../src/app-errors';
 import { NavigationDTO, NavigationPluginConfigDTO } from '../../src/dtos';
 import { NavigationItemDBSchema } from '../../src/schemas';
 import { ConfigSchema } from '../../src/schemas/config';
@@ -93,7 +94,6 @@ describe('Navigation', () => {
             post: jest.fn().mockRejectedValue(undefined),
           });
           const mockNavigation = getMockNavigation();
-          const body = omit(mockNavigation, ['id', 'name']);
           const documentId = faker.string.uuid();
           const internalServerErrorMock = jest.fn();
 
@@ -107,7 +107,7 @@ describe('Navigation', () => {
               auditLog: auditLogMock,
               params: { documentId },
               request: asProxy<KoaContextExtension['request']>({
-                body,
+                body: mockNavigation,
               }),
               internalServerError: internalServerErrorMock,
             })
@@ -115,6 +115,65 @@ describe('Navigation', () => {
 
           // Then
           expect(internalServerErrorMock).toHaveBeenCalled();
+        });
+
+        it('should report original error details when service throws an Error', async () => {
+          // Given
+          const error = new Error('boom');
+          const mockAdminService = asProxy<AdminService>({
+            post: jest.fn().mockRejectedValue(error),
+          });
+          const internalServerErrorMock = jest.fn();
+          const mockNavigation = getMockNavigation();
+
+          (getPluginService as jest.Mock).mockReturnValue(mockAdminService);
+
+          const adminController = buildAdminController({ strapi });
+
+          // When
+          await adminController.post(
+            asProxy<KoaContext & KoaContextExtension>({
+              auditLog: jest.fn(),
+              request: asProxy<KoaContextExtension['request']>({
+                body: { name: mockNavigation.name, visible: mockNavigation.visible },
+              }),
+              internalServerError: internalServerErrorMock,
+            })
+          );
+
+          // Then
+          expect(internalServerErrorMock).toHaveBeenCalledWith('Unable to create', {
+            originalError: { name: error.name, message: error.message },
+          });
+        });
+
+        it('should report empty original error when service throws a non-Error', async () => {
+          // Given
+          const mockAdminService = asProxy<AdminService>({
+            post: jest.fn().mockRejectedValue('nope'),
+          });
+          const internalServerErrorMock = jest.fn();
+          const mockNavigation = getMockNavigation();
+
+          (getPluginService as jest.Mock).mockReturnValue(mockAdminService);
+
+          const adminController = buildAdminController({ strapi });
+
+          // When
+          await adminController.post(
+            asProxy<KoaContext & KoaContextExtension>({
+              auditLog: jest.fn(),
+              request: asProxy<KoaContextExtension['request']>({
+                body: { name: mockNavigation.name, visible: mockNavigation.visible },
+              }),
+              internalServerError: internalServerErrorMock,
+            })
+          );
+
+          // Then
+          expect(internalServerErrorMock).toHaveBeenCalledWith('Unable to create', {
+            originalError: {},
+          });
         });
 
         it('should validate input', () => {
@@ -190,14 +249,13 @@ describe('Navigation', () => {
           });
         });
 
-        it('should handle an empty error', () => {
+        it('should handle an empty error', async () => {
           // Given
           const auditLogMock = jest.fn();
           const mockAdminService = asProxy<AdminService>({
             put: jest.fn().mockRejectedValue(undefined),
           });
           const mockNavigation = getMockNavigation();
-          const body = omit(mockNavigation, ['id', 'name']);
           const documentId = faker.string.uuid();
           const internalServerErrorMock = jest.fn();
 
@@ -206,12 +264,12 @@ describe('Navigation', () => {
           const adminController = buildAdminController({ strapi });
 
           // When
-          adminController.put(
+          await adminController.put(
             asProxy<KoaContext & KoaContextExtension>({
               auditLog: auditLogMock,
               params: { documentId },
               request: asProxy<KoaContextExtension['request']>({
-                body,
+                body: mockNavigation,
               }),
               internalServerError: internalServerErrorMock,
             })
@@ -219,6 +277,40 @@ describe('Navigation', () => {
 
           // Then
           expect(internalServerErrorMock).toHaveBeenCalled();
+        });
+
+        it('should report original error details when service throws an Error', async () => {
+          // Given
+          const error = new Error('boom');
+          const mockAdminService = asProxy<AdminService>({
+            put: jest.fn().mockRejectedValue(error),
+          });
+          const internalServerErrorMock = jest.fn();
+          const badRequestMock = jest.fn();
+          const documentId = faker.string.uuid();
+
+          (getPluginService as jest.Mock).mockReturnValue(mockAdminService);
+
+          const adminController = buildAdminController({ strapi });
+
+          // When
+          await adminController.put(
+            asProxy<KoaContext & KoaContextExtension>({
+              auditLog: jest.fn(),
+              params: { documentId },
+              request: asProxy<KoaContextExtension['request']>({
+                body: getMockNavigation(),
+              }),
+              internalServerError: internalServerErrorMock,
+              badRequest: badRequestMock,
+            })
+          );
+
+          // Then
+          expect(internalServerErrorMock).toHaveBeenCalledWith('Unable to update', {
+            originalError: { name: error.name, message: error.message },
+          });
+          expect(badRequestMock).not.toHaveBeenCalled();
         });
 
         it('should validate input', () => {
@@ -230,6 +322,7 @@ describe('Navigation', () => {
           const mockNavigation = getMockNavigation();
           const body = omit(mockNavigation, ['id', 'name']);
           const documentId = faker.string.uuid();
+          const badRequestMock = jest.fn();
           const internalServerErrorMock = jest.fn();
 
           (getPluginService as jest.Mock).mockReturnValue(mockAdminService);
@@ -244,12 +337,44 @@ describe('Navigation', () => {
               request: asProxy<KoaContextExtension['request']>({
                 body,
               }),
+              badRequest: badRequestMock,
               internalServerError: internalServerErrorMock,
             })
           );
 
           // Then
-          expect(internalServerErrorMock).toHaveBeenCalled();
+          expect(badRequestMock).toHaveBeenCalled();
+          expect(internalServerErrorMock).not.toHaveBeenCalled();
+          expect(mockAdminService.put).not.toHaveBeenCalled();
+        });
+
+        it('should reject a non-object body', async () => {
+          const auditLogMock = jest.fn();
+          const mockAdminService = asProxy<AdminService>({
+            put: jest.fn(),
+          });
+          const documentId = faker.string.uuid();
+          const badRequestMock = jest.fn();
+          const internalServerErrorMock = jest.fn();
+
+          (getPluginService as jest.Mock).mockReturnValue(mockAdminService);
+
+          const adminController = buildAdminController({ strapi });
+
+          await adminController.put(
+            asProxy<KoaContext & KoaContextExtension>({
+              auditLog: auditLogMock,
+              params: { documentId },
+              request: asProxy<KoaContextExtension['request']>({
+                body: null,
+              }),
+              badRequest: badRequestMock,
+              internalServerError: internalServerErrorMock,
+            })
+          );
+
+          expect(badRequestMock).toHaveBeenCalled();
+          expect(internalServerErrorMock).not.toHaveBeenCalled();
           expect(mockAdminService.put).not.toHaveBeenCalled();
         });
       });
@@ -557,6 +682,55 @@ describe('Navigation', () => {
           expect(result).toEqual(items);
         });
 
+        it('should pass query and uid to the service', async () => {
+          // Given
+          const getContentTypeItems = jest.fn().mockResolvedValue([]);
+          const mockAdminService = asProxy<AdminService>({
+            getContentTypeItems,
+          });
+          const model = faker.string.sample(10);
+          const query = { locale: 'en', page: '1' };
+
+          (getPluginService as jest.Mock).mockReturnValue(mockAdminService);
+
+          const adminController = buildAdminController({ strapi });
+
+          // When
+          await adminController.getContentTypeItems(
+            asProxy<KoaContext>({
+              params: { model },
+              query,
+            })
+          );
+
+          // Then
+          expect(getContentTypeItems).toHaveBeenCalledWith({ query, uid: model });
+        });
+
+        it('should default query to an empty object', async () => {
+          // Given
+          const getContentTypeItems = jest.fn().mockResolvedValue([]);
+          const mockAdminService = asProxy<AdminService>({
+            getContentTypeItems,
+          });
+          const model = faker.string.sample(10);
+
+          (getPluginService as jest.Mock).mockReturnValue(mockAdminService);
+
+          const adminController = buildAdminController({ strapi });
+
+          // When
+          await adminController.getContentTypeItems(
+            asProxy<KoaContext>({
+              params: { model },
+              query: undefined,
+            })
+          );
+
+          // Then
+          expect(getContentTypeItems).toHaveBeenCalledWith({ query: {}, uid: model });
+        });
+
         it('should validate input', async () => {
           // Given
           const getContentTypeItems = jest.fn();
@@ -614,6 +788,69 @@ describe('Navigation', () => {
             target,
             auditLog,
           });
+        });
+
+        it('should respond with bad request on InvalidParamNavigationError', async () => {
+          // Given
+          const error = new InvalidParamNavigationError('invalid param');
+          const fillFromOtherLocale = jest.fn().mockRejectedValue(error);
+          const mockAdminService = asProxy<AdminService>({
+            fillFromOtherLocale,
+          });
+          const badRequestMock = jest.fn().mockReturnValue('bad-request');
+          const params = {
+            source: faker.string.uuid(),
+            target: faker.string.uuid(),
+            documentId: faker.string.uuid(),
+          };
+
+          (getPluginService as jest.Mock).mockReturnValue(mockAdminService);
+
+          const adminController = buildAdminController({ strapi });
+
+          // When
+          const result = await adminController.fillFromOtherLocale(
+            asProxy<KoaContext>({
+              params,
+              auditLog: jest.fn(),
+              badRequest: badRequestMock,
+            })
+          );
+
+          // Then
+          expect(badRequestMock).toHaveBeenCalledWith(error.message);
+          expect(result).toEqual('bad-request');
+        });
+
+        it('should rethrow unknown errors', async () => {
+          // Given
+          const error = new Error('unexpected');
+          const fillFromOtherLocale = jest.fn().mockRejectedValue(error);
+          const mockAdminService = asProxy<AdminService>({
+            fillFromOtherLocale,
+          });
+          const badRequestMock = jest.fn();
+          const params = {
+            source: faker.string.uuid(),
+            target: faker.string.uuid(),
+            documentId: faker.string.uuid(),
+          };
+
+          (getPluginService as jest.Mock).mockReturnValue(mockAdminService);
+
+          const adminController = buildAdminController({ strapi });
+
+          // Then
+          await expect(
+            adminController.fillFromOtherLocale(
+              asProxy<KoaContext>({
+                params,
+                auditLog: jest.fn(),
+                badRequest: badRequestMock,
+              })
+            )
+          ).rejects.toBe(error);
+          expect(badRequestMock).not.toHaveBeenCalled();
         });
 
         it.each([

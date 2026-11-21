@@ -23,6 +23,7 @@ import {
   isContentManagerType,
   mapServerNavigationItem,
 } from '../../utils';
+import { navigationAbsolutePath, pathReserved } from '../../utils/path';
 import { CollapseButton } from '../CollapseButton';
 import { type NavigationItemFormSchema } from '../NavigationItemForm';
 import { List } from '../NavigationItemList';
@@ -126,14 +127,10 @@ export const Item: React.FC<Props> = ({
 
   const hasChildren = !isEmpty(item.items) && !displayChildren;
   const isManualPath = item.isManualPath;
+  const pathIsReserved = !isExternal && pathReserved(mappedItem.path);
   const absolutePath = isExternal
     ? undefined
-    : isManualPath
-      ? (mappedItem.path ?? '')
-      : `${levelPath === '/' ? '' : levelPath}/${mappedItem.path === '/' ? '' : mappedItem.path}`.replace(
-          '//',
-          '/'
-        );
+    : navigationAbsolutePath(levelPath, mappedItem.path, !!isManualPath);
 
   const contentTypeItemsQuery = useContentTypeItems({
     uid: mappedItem.type === 'INTERNAL' ? (mappedItem.relatedType ?? '') : '',
@@ -270,8 +267,16 @@ export const Item: React.FC<Props> = ({
           zIndex: 1,
           position: 'relative',
           overflow: 'hidden',
-          backgroundColor: mappedItem.isSearchActive ? theme.colors.secondary100 : undefined,
-          borderColor: mappedItem.isSearchActive ? theme.colors.secondary200 : undefined,
+          backgroundColor: pathIsReserved
+            ? theme.colors.danger100
+            : mappedItem.isSearchActive
+              ? theme.colors.secondary100
+              : undefined,
+          borderColor: pathIsReserved
+            ? theme.colors.danger600
+            : mappedItem.isSearchActive
+              ? theme.colors.secondary200
+              : undefined,
           transition: 'background-color 0.3s ease-in',
         }}
       >

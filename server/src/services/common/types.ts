@@ -37,6 +37,8 @@ export interface CreateBranchInput {
   masterEntity: NavigationDBSchema | undefined;
   parentItem: NavigationItemDBSchema | undefined;
   action: NavigationAction;
+  depth?: number;
+  depthMax?: number;
 }
 
 export interface RemoveBranchInput {
@@ -52,6 +54,8 @@ export interface UpdateBranchInput {
   masterEntity: NavigationDBSchema | undefined;
   parentItem: NavigationItemDBSchema | undefined;
   action: NavigationAction;
+  depth?: number;
+  depthMax?: number;
 }
 
 export interface AnalyzeBranchInput {
@@ -63,6 +67,8 @@ export interface AnalyzeBranchInput {
   masterEntity?: NavigationDBSchema;
   parentItem?: NavigationItemDBSchema;
   prevAction: NavigationAction;
+  depth?: number;
+  depthMax?: number;
 }
 
 export interface EmitEventInput<TEvent, TEntity> {

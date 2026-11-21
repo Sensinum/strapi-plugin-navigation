@@ -16,6 +16,7 @@ import {
   RenderTreeInput,
   RenderTypeInput,
 } from './types';
+import { composeNavigationPath, pathSegmentAbsent, renderedItemPath } from '../../utils/path';
 import { compareArraysOfNumbers, composeItemTitle, filterByPath } from './utils';
 
 export type ClientService = ReturnType<typeof clientService>;
@@ -341,20 +342,22 @@ const clientService = (context: { strapi: Core.Strapi }) => ({
             path = ''
           ): Promise<NavigationItemDTO> => {
             const isExternal = item.type === 'EXTERNAL';
-            const isManualPath = item.isManualPath;
-            const parentPath = isExternal
+            const composedPath = isExternal
               ? undefined
-              : isManualPath
-                ? item.path ?? ''
-                : `${path === '/' ? '' : path}/${
-                    first(item.path) === '/' ? item.path!.substring(1) : item.path
-                  }`;
+              : composeNavigationPath(path, item.path, !!item.isManualPath);
+            let childPath = composedPath;
+
+            if (isExternal) {
+              childPath = undefined;
+            } else if (pathSegmentAbsent(item.path)) {
+              childPath = path;
+            }
             const slug =
-              typeof parentPath === 'string'
+              typeof composedPath === 'string'
                 ? await commonService.getSlug({
-                    query: (first(parentPath) === '/'
-                      ? parentPath.substring(1)
-                      : parentPath
+                    query: (composedPath.startsWith('/')
+                      ? composedPath.substring(1)
+                      : composedPath
                     ).replace(/\//g, '-'),
                   })
                 : undefined;
@@ -369,7 +372,7 @@ const clientService = (context: { strapi: Core.Strapi }) => ({
                 composeItemTitle(item, contentTypesNameFields, contentTypes) ?? 'Title missing',
               menuAttached: item.menuAttached,
               order: item.order,
-              path: (isExternal ? item.externalPath : parentPath) ?? 'Path is missing',
+              path: isExternal ? (item.externalPath ?? 'Path is missing') : (composedPath ?? null),
               type: item.type,
               uiRouterKey: item.uiRouterKey,
               slug:
@@ -385,7 +388,7 @@ const clientService = (context: { strapi: Core.Strapi }) => ({
               audience: !isEmpty(item.audience) ? item.audience : undefined,
               items: await this.renderTree({
                 itemParser,
-                path: parentPath,
+                path: childPath ?? undefined,
                 documentId: item.documentId,
                 items: mappedItems,
               }),
@@ -453,6 +456,7 @@ const clientService = (context: { strapi: Core.Strapi }) => ({
 
               return {
                 ...item,
+                path: renderedItemPath(item.path),
                 audience: item.audience?.map((_) => _.key),
                 title: composeItemTitle(item, contentTypesNameFields, contentTypes) || '',
                 related: wrapContentType(item.related),
